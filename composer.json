@@ -1,5 +1,5 @@
 {
-    "name": "alldebrid/Alldebrid-php",
+    "name": "alldebrid/alldebrid-php",
     "description": "Alldebrid lib for php",
     "require": {
         "php": "^7.1"
