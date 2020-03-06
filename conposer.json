@@ -1,0 +1,8 @@
+{
+    "name": "alldebrid/Alldebrid-php",
+    "description": "Alldebrid lib for php",
+    "require": {
+        "php": "^7.1"
+        //"another-vendor/package": "1.*"
+    }
+}
