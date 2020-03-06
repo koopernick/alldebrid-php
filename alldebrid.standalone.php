@@ -158,7 +158,10 @@ class Alldebrid {
 		if(!$response OR !is_array($response) OR !isset($response['status'])) {
 			if($this->options['retry'] === true AND $retry <= $this->options['maxRetries']) {
 				sleep(1);
-				$retry++;$endpointIsPublic, 
+				$retry++;
+				return $this->api($endpoint, $params, $retry);
+			}
+		}
 
 		if($response['status'] == 'error' AND isset($response['error'])) {
 			return $this->apiError($response['error']);
@@ -402,7 +405,8 @@ class Alldebrid {
 					continue;
 
 				if($bestStream == false OR $stream['quality'] > $bestStream['quality'])
-					$bestStream = $stream;api(
+					$bestStream = $stream;
+			}
 
 			[ $response, $error ] = $this->api('link/streaming', ['id' => $response['id'], 'stream' => $bestStream['id']]);
 		}

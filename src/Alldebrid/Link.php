@@ -4,118 +4,116 @@ namespace Alldebrid;
 
 class Link {
 
-    public $alldebrid;
+	public $alldebrid;
 
-    public $link;
-    public $password = false;
+	public $link;
+	public $password = false;
 
-    public $type;
+	public $type;
 
-    public $hasMultipleStreams = false;
-    public $isDelayed = false;
+	public $hasMultipleStreams = false;
+	public $isDelayed = false;
 
-    public $delayedID = 0;
+	public $delayedID = 0;
 
-    public $infos;
-    public $unlockInfos;
-    public $streamInfos;
+	public $infos;
+	public $unlockInfos;
+	public $streamInfos;
 
-    public function __construct(Alldebrid $alldebrid, $link, $password = false) {
-        $this->alldebrid = $alldebrid;
-        $this->link = $link;
-    }
+	public function __construct(Alldebrid $alldebrid, $link, $password = false) {
+		$this->alldebrid = $alldebrid;
+		$this->link = $link;
+	}
+	
+	public function type() {
+		if($this->type !== null)
+			return $this->alldebrid->response($this->type); // Already checked regexps
 
-    public function type() {
-        if($this->type !== null)
-            return $this->alldebrid->response($this->type); // Already checked regexps
+		[ $type, $error ] =  $this->alldebrid->linkType([$this->link]);
 
-        [ $type, $error ] =  $this->alldebrid->linkType([$this->link]);
+		if($error) return $this->alldebrid->response($type, $error);
 
-        if($error) return $this->alldebrid->response($type, $error);
+		$this->type = $type;
+		return $this->alldebrid->response($type);
+	}
 
-        $this->type = $type;
-        return $this->alldebrid->response($type);
-    }
+	public function isSupported() {
+		[ $type, $error ] = $this->type();
 
-    public function isSupported() {
-        [ $type, $error ] = $this->type();
+		if($error) return $this->alldebrid->response($type, $error);
 
-        if($error) return $this->alldebrid->response($type, $error);
+		if($type !== false)
+			return $this->alldebrid->response(true);
 
-        if($type !== false)
-            return $this->alldebrid->response(true);
+		return $this->alldebrid->response(false);
+	}
 
-        return $this->alldebrid->response(false);
-    }
+	public function infos() {
+		[ $response, $error ] = $this->alldebrid->linkInfos([$this->link]);
+		
+		if($error) $this->alldebrid->response($response, $error);
 
-    public function infos() {
-        [ $response, $error ] = $this->alldebrid->linkInfos([$this->link]);
-        
-        if($error) $this->alldebrid->response($response, $error);
+		$this->infos = $response;
 
-        $this->infos = $response;
+		return $this->alldebrid->response($response);
+	}
 
-        return $this->alldebrid->response($response);
-    }
+	public function unlock() {
+		[ $response, $error ] = $this->alldebrid->linkUnlock($this->link, $this->password);
 
-    public function unlock() {
-        <?php
+		if($error) $this->alldebrid->response($response, $error);
 
-    namespace Alldebrid;[ $response, $error ] = $this->alldebrid->linkUnlock($this->link, $this->password);
+		$this->unlockInfos = $response;
 
-        if($error) $this->alldebrid->response($response, $error);
+		if(isset($response['delayed'])) {
+			$this->isDelayed = true;
+			$this->delayedID = $response['delayed'];
+		}
+			
 
-        $this->unlockInfos = $response;
+		if(isset($response['streams']) AND is_array($response['streams']) AND count($response['streams']) > 0)
+			$this->hasMultipleStreams = true;
 
-        if(isset($response['delayed'])) {
-            $this->isDelayed = true;
-            $this->delayedID = $response['delayed'];
-        }
-            
+		return $this->alldebrid->response($response);
+	}
 
-        if(isset($response['streams']) AND is_array($response['streams']) AND count($response['streams']) > 0)
-            $this->hasMultipleStreams = true;
+	public function stream($streamID) {
+		[ $response, $error ] =  $this->alldebrid->linkStream($this->unlockInfos['id'], $streamID);
 
-        return $this->alldebrid->response($response);
-    }
+		if($error) $this->alldebrid->response($response, $error);
 
-    public function stream($streamID) {
-        [ $response, $error ] =  $this->alldebrid->linkStream($this->unlockInfos['id'], $streamID);
+		$this->streamInfos = $response;
 
-        if($error) $this->alldebrid->response($response, $error);
+		if(isset($response['delayed'])) {return $this->alldebrid->error('LIB_BAD_METHOD', 'upload before checking status');
+			$this->isDelayed = true;
+			$this->delayedID = $response['delayed'];
+		}
 
-        $this->streamInfos = $response;
+		return $this->alldebrid->response($response);
+	}
 
-        if(isset($response['delayed'])) {return $this->alldebrid->error('LIB_BAD_METHOD', 'upload before checking status');
-            $this->isDelayed = true;
-            $this->delayedID = $response['delayed'];
-        }
+	public function delayed() {
+		[ $response, $error ] =  $this->alldebrid->linkDelayed($this->delayedID);
 
-        return $this->alldebrid->response($response);
-    }
+		if($error) $this->alldebrid->response($response, $error);
 
-    public function delayed() {
-        [ $response, $error ] =  $this->alldebrid->linkDelayed($this->delayedID);
+		if($response['status'] == 2) {
+			$this->isDelayed = false;
+		}
 
-        if($error) $this->alldebrid->response($response, $error);
+		return $this->alldebrid->response($response);
+	}
 
-        if($response['status'] == 2) {
-            $this->isDelayed = false;
-        }
+	public function waitFordelayed($progressCallback = false) {
 
-        return $this->alldebrid->response($response);
-    }
-
-    public function waitFordelayed($progressCallback = false) {
-
-        do {
-            sleep(5);
-            [ $response, $error ] =  $this->delayed();
-            if($progressCallback !== false AND is_callable($progressCallback) AND $this->isDelayed === true AND !$error) {
-                $progressCallback($response['time_left']);
-            }
-        } while(!$error AND $this->isDelayed === true);
-        
-        return $this->alldebrid->response($response, $error);
-    }
+		do {
+			sleep(5);
+			[ $response, $error ] =  $this->delayed();
+			if($progressCallback !== false AND is_callable($progressCallback) AND $this->isDelayed === true AND !$error) {
+				$progressCallback($response['time_left']);
+			}
+		} while(!$error AND $this->isDelayed === true);
+		
+		return $this->alldebrid->response($response, $error);
+	}
 }
