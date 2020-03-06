@@ -71,7 +71,7 @@ class Alldebrid {
 		return $this->response($error['message'], $error['code']);
 	}
 
-	public function api($endpoint, $params = [], $endpointIsPublic = false, $retry = 0) {
+	public function api($endpoint, $params = [], $retry = 0) {
 		
 		$contextOptions = [
 			'http' => [
@@ -87,7 +87,7 @@ class Alldebrid {
 			$params['version'] = $this->version;
 
 		// Send apikey in Authorization header
-		if(!$endpointIsPublic AND $this->apikey !== false) {
+		if($this->apikey !== false) {
 			$contextOptions['http']['header'][]  = 'Authorization: Bearer ' . $this->apikey;
 		}
 		
@@ -158,11 +158,7 @@ class Alldebrid {
 		if(!$response OR !is_array($response) OR !isset($response['status'])) {
 			if($this->options['retry'] === true AND $retry <= $this->options['maxRetries']) {
 				sleep(1);
-				$retry++;
-				return $this->api($endpoint, $params, $endpointIsPublic, $retry);
-			}
-			return $this->response($response, 'BAD_RESPONSE');
-		}
+				$retry++;$endpointIsPublic, 
 
 		if($response['status'] == 'error' AND isset($response['error'])) {
 			return $this->apiError($response['error']);
@@ -406,8 +402,7 @@ class Alldebrid {
 					continue;
 
 				if($bestStream == false OR $stream['quality'] > $bestStream['quality'])
-					$bestStream = $stream;
-			}
+					$bestStream = $stream;api(
 
 			[ $response, $error ] = $this->api('link/streaming', ['id' => $response['id'], 'stream' => $bestStream['id']]);
 		}
